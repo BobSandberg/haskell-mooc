@@ -12,6 +12,7 @@ import Mooc.Todo
 import Data.Char
 import Data.Either
 import Data.List
+import Distribution.Simple.Utils (xargs)
 
 ------------------------------------------------------------------------------
 -- Ex 1: implement the function maxBy that takes as argument a
@@ -28,7 +29,11 @@ import Data.List
 --  maxBy head   [1,2,3] [4,5]  ==>  [4,5]
 
 maxBy :: (a -> Int) -> a -> a -> a
-maxBy measure a b = todo
+-- maxBy measure a b = if measure a > measure b then a else b
+
+maxBy measure a b
+    | measure a > measure b = a
+    | otherwise             = b
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function mapMaybe that takes a function and a
@@ -40,7 +45,14 @@ maxBy measure a b = todo
 --   mapMaybe length (Just "abc") ==> Just 3
 
 mapMaybe :: (a -> b) -> Maybe a -> Maybe b
-mapMaybe f x = todo
+-- mapMaybe f x = case x of
+--                  Nothing -> Nothing
+--                  Just something -> Just (f something) 
+
+mapMaybe _ Nothing = Nothing
+mapMaybe f (Just jx) = Just (f jx)
+
+
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function mapMaybe2 that works like mapMaybe
@@ -54,7 +66,9 @@ mapMaybe f x = todo
 --   mapMaybe2 div (Just 6) Nothing   ==>  Nothing
 
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
-mapMaybe2 f x y = todo
+mapMaybe2 _  Nothing  _        = Nothing
+mapMaybe2 _  _        Nothing  = Nothing
+mapMaybe2 f  (Just a) (Just b) = Just (f a b)
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -74,11 +88,14 @@ mapMaybe2 f x y = todo
 -- Note! Do not change the definition of palindromeHalfs
 
 palindromeHalfs :: [String] -> [String]
-palindromeHalfs xs = map firstHalf (filter palindrome xs)
+palindromeHalfs = map firstHalf . filter palindrome
 
-firstHalf = todo
+firstHalf :: String -> String
+firstHalf s = take halfLen s
+              where halfLen = (\l -> (l `div` 2) + (l `mod` 2)) . length $ s
 
-palindrome = todo
+palindrome :: String -> Bool
+palindrome s = s == reverse s
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -96,8 +113,12 @@ palindrome = todo
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
 capitalize :: String -> String
-capitalize = todo
+capitalize = let cap1st (h:t) = toUpper h : t
+             in unwords . map cap1st . words
 
+
+-- rename: Internal Error: Explicit export list required for renaming
+-- Error condition, please check your setup and/or the issue tracker: rename: Internal Error: Explicit export list required for renaming
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
 -- than or equal to max. For example:
@@ -113,7 +134,12 @@ capitalize = todo
 --   * the function takeWhile
 
 powers :: Int -> Int -> [Int]
-powers k max = todo
+-- powers k max = powers' k max 0
+--     where powers' k max n
+--             | (k^n) < max = k^n : powers' k max (n+1)
+--             | otherwise   = []
+
+powers k max = takeWhile (max>) . map (k^) $ [1..]
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -135,8 +161,25 @@ powers k max = todo
 --   in while check tail "xyzAvvt"
 --     ==> Avvt
 
-while :: (a->Bool) -> (a->a) -> a -> a
-while check update value = todo
+while :: (a->Bool) -> (a -> a) -> a -> a
+-- while check update value
+--     | check value = while check update nextValue
+--     | otherwise   = value
+--     where nextValue = update value
+
+-- while check update value = if check (update value)
+--                            then while check update (update value)
+--                            else update value
+
+-- while check update = do_while_check . update
+--                      where do_while_check newval = if check newval then while check update newval else newval
+
+-- while check update v = if check v then while check update . update $ v else v
+
+-- while check update = \v -> if check v then while check update . update $ v else 
+
+while check update v =
+    if check v then while check update (update v) else v
 
 ------------------------------------------------------------------------------
 -- Ex 8: another version of a while loop. This time, the check
@@ -156,7 +199,10 @@ while check update value = todo
 -- Hint! Remember the case-of expression from lecture 2.
 
 whileRight :: (a -> Either b a) -> a -> b
-whileRight check x = todo
+whileRight check v = case check v of
+                        Left  b -> b
+                        Right a -> whileRight check a
+
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
@@ -180,7 +226,11 @@ bomb x = Right (x-1)
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength = todo
+joinToLength n strs = [ combo |
+                        first <- strs, second <- strs,
+                        let combo = first ++ second,
+                        length combo == n
+                        ]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -193,6 +243,14 @@ joinToLength = todo
 --   [1,2,3] +|+ [4,5,6]  ==> [1,4]
 --   [] +|+ [True]        ==> [True]
 --   [] +|+ []            ==> []
+
+(+|+) :: [a] -> [a] -> [a]
+-- (+|+) list1 list2 = take 1 list1 ++ take 1 list2
+(+|+) []     []     = []
+(+|+) []     (h2:_) = [h2]
+(+|+) (h1:_) []     = [h1]
+(+|+) (h1:_) (h2:_) = [h1,h2]
+
 
 
 ------------------------------------------------------------------------------
@@ -210,7 +268,7 @@ joinToLength = todo
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
 
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights = sum . rights
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -226,7 +284,12 @@ sumRights = todo
 --   multiCompose [(3*), (2^), (+1)] 0 ==> 6
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
 
-multiCompose fs = todo
+multiCompose :: [a -> a] -> a -> a
+
+-- multiCompose [] = id
+-- multiCompose (h:t) = h . multiCompose t
+
+multiCompose = foldr (.) id
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -247,7 +310,29 @@ multiCompose fs = todo
 --   multiApp id [head, (!!2), last] "axbxc" ==> ['a','b','c'] i.e. "abc"
 --   multiApp sum [head, (!!2), last] [1,9,2,9,3] ==> 6
 
-multiApp = todo
+-- Aha! to reverse the arguments the ` backtick makes id an infix operation
+-- which uses the form of the map function to add the gs mapped member to the right side
+-- The flip operator does about the same thing and makes you wonder if flip is used under the covers with the infix notation.
+multiApp :: ([b] -> c) -> [a -> b] -> a -> c
+multiApp f gs x = f . map (`id` x) $ gs
+
+-- multiApp f gs x = f . map (flip id x) $ gs
+-- multiApp f gs x = f (map (\g -> g x) gs)
+-- multiApp f gs x = f . map (flip id x) $ gs
+
+
+-- Test it out
+{-
+multiApp id [] 7
+multiApp id [id, reverse, tail] "This is a test"
+multiApp id  [(1+), (^3), (+2)] 1
+multiApp sum [(1+), (^3), (+2)] 1
+multiApp reverse [tail, take 2, reverse] "foo"
+multiApp concat [take 3, reverse] "race"
+multiApp id [head, (!!2), last] "axbxc"
+multiApp sum [head, (!!2), last] [1,9,2,9,3]
+-}
+
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -281,5 +366,36 @@ multiApp = todo
 -- using (:). If you build the list in an argument to a helper
 -- function, the surprise won't work. See section 3.8 in the material.
 
-interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter :: [String] -> (Integer, Integer)
+interpreter = foldr doCmd (0,0)
+    where 
+        doCmd "up"      (x,y) = (x,y+1)
+        doCmd "down"    (x,y) = (x,y-1)
+        doCmd "left"    (x,y) = (x-1,y)
+        doCmd "right"   (x,y) = (x+1,y)
+        doCmd "printXY" (x,y) = (x,y)
+
+
+
+interpreter2 :: [String] -> [String]
+interpreter2 = third . foldr doCmd (0,0,[])
+    where 
+        third (_,_,p) = p
+        doCmd "up"      (x,y,p) = (x  , y+1,         p)
+        doCmd "down"    (x,y,p) = (x  , y-1,         p)
+        doCmd "left"    (x,y,p) = (x-1, y  ,         p)
+        doCmd "right"   (x,y,p) = (x+1, y  ,         p)
+        doCmd "printX"  (x,y,p) = (x  , y  , show x :p)
+        doCmd "printY"  (x,y,p) = (x  , y  , show y :p)
+
+
+interpreter4 :: [String] -> [String]
+interpreter4 = third . foldl doCmd (0,0,[])
+    where 
+        third (_,_,p) = p
+        doCmd (x,y,p) "up"      = (x  , y+1, p)
+        doCmd (x,y,p) "down"    = (x  , y-1, p)
+        doCmd (x,y,p) "left"    = (x-1, y  , p)
+        doCmd (x,y,p) "right"   = (x+1, y  , p)
+        doCmd (x,y,p) "printX"  = (x  , y  , p ++ [show x])
+        doCmd (x,y,p) "printY"  = (x  , y  , p ++ [show y])

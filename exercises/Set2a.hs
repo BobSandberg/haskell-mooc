@@ -21,7 +21,7 @@ import Data.List
 -- Ex 1: Define the constant years, that is a list of the values 1982,
 -- 2004 and 2020 in this order.
 
-years = todo
+years = [1982, 2004, 2020]
 
 ------------------------------------------------------------------------------
 -- Ex 2: define the function takeFinal, which returns the n last
@@ -31,8 +31,39 @@ years = todo
 --
 -- Hint! remember the take and drop functions.
 
-takeFinal :: Int -> [a] -> [a]
-takeFinal n xs = todo
+takeFinal1 :: Int -> [a] -> [a]
+takeFinal1 n xs = drop (length xs - n) xs 
+
+-----
+
+takeFinal2 :: Int -> [a] -> [a]
+takeFinal2 n xs = drop ((myLength xs) - n) xs 
+
+myLength :: [a] -> Int
+myLength l = myLength' l 0
+
+myLength' :: [a] -> Int -> Int
+myLength' [] c = c
+myLength' (x:xs) c = myLength' xs (c+1)
+
+-----
+
+takeFinal3 :: Int -> [a] -> [a]
+takeFinal3 n xs = reverse( take n (reverse xs))
+
+-----
+
+takeFinal4 :: Int -> [a] -> [a]
+takeFinal4 n l = takeFinal4' n l [] []
+
+takeFinal4' :: Int -> [a] -> [a] -> [a] -> [a]
+takeFinal4' 0 il rl ol = il ++ ol
+takeFinal4' n [] [] ol = ol
+takeFinal4' n [] (rx:rxs) ol = takeFinal4' (n-1) [] rxs (rx:ol)
+takeFinal4' n (ix:ixs) rl ol = takeFinal4' n ixs (ix:rl) ol
+
+-- ! Whew -- that was tricky. !
+-- I'm sure this can be made more efficient
 
 ------------------------------------------------------------------------------
 -- Ex 3: Update an element at a certain index in a list. More
@@ -46,7 +77,24 @@ takeFinal n xs = todo
 --   updateAt 2 0 [4,5,6,7] ==>  [4,5,0,7]
 
 updateAt :: Int -> a -> [a] -> [a]
-updateAt i x xs = todo
+updateAt i u xs = updateAt' i u xs []
+
+updateAt' :: Int -> a -> [a] -> [a] -> [a]
+updateAt' i u [] ol = reverse ol
+updateAt' i u (x:xs) ol = let v = if i == 0 then u else x
+                          in updateAt' (i-1) u xs (v:ol)
+
+-----
+
+updateAt2 :: Int -> a -> [a] -> [a]
+updateAt2 i u xs 
+    | i < 0 || length(xs) <= i = xs
+    | otherwise = let len = length(xs)
+                      prelist = take (i) xs
+                      valList = [u]
+                      postlist = drop (i+1) xs
+                  in prelist ++ valList ++ postlist
+
 
 ------------------------------------------------------------------------------
 -- Ex 4: substring i j s should return the substring of s starting at
@@ -59,8 +107,18 @@ updateAt i x xs = todo
 --   substring 2 2 "abcdefgh"  ==>  ""
 --   substring 0 4 "abcdefgh"  ==>  "abcd"
 
+-- WITH ERROR CHECKING
 substring :: Int -> Int -> String -> String
-substring i j s = todo
+substring i j s
+    | i > j                     = "Error: i <= j"
+    | invRange i || invRange j  = "Error: substring range is not within the string's range"
+    | otherwise                 = take (j-i) . drop i $ s
+    where len = length s
+          invRange n = n < 0 || len < n
+
+-- WITHOUT ERROR CHECKING
+substring2 :: Int -> Int -> String -> String
+substring2 i j = take (j-i) . drop i
 
 ------------------------------------------------------------------------------
 -- Ex 5: check if a string is a palindrome. A palindrome is a string
@@ -75,7 +133,9 @@ substring i j s = todo
 --   isPalindrome "AB"       ==>  False
 
 isPalindrome :: String -> Bool
-isPalindrome str = todo
+isPalindrome str = str == reverse str
+
+
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement the function palindromify that chops a character
@@ -89,7 +149,11 @@ isPalindrome str = todo
 --   palindromify "abracacabra" ==> "acaca"
 
 palindromify :: String -> String
-palindromify s = todo
+palindromify s
+    | isPalindrome s  = s
+    | otherwise       = palindromify (removeFirstChar . removeLastChar $ s)
+    where removeFirstChar    = drop 1
+          removeLastChar  ss = take (length ss - 1) ss
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement safe integer division, that is, a function that
@@ -102,7 +166,8 @@ palindromify s = todo
 --   safeDiv 4 0  ==> Nothing
 
 safeDiv :: Integer -> Integer -> Maybe Integer
-safeDiv x y = todo
+safeDiv _ 0 = Nothing
+safeDiv x y = Just (div x y)
 
 ------------------------------------------------------------------------------
 -- Ex 8: implement a function greet that greets a person given a first
@@ -114,7 +179,8 @@ safeDiv x y = todo
 --   greet "John" (Just "Smith")  ==> "Hello, John Smith!"
 
 greet :: String -> Maybe String -> String
-greet first last = todo
+greet first Nothing = "Hello, " ++ first
+greet first (Just last) = "Hello, " ++ first ++ " " ++ last
 
 ------------------------------------------------------------------------------
 -- Ex 9: safe list indexing. Define a function safeIndex so that
@@ -130,7 +196,9 @@ greet first last = todo
 --   safeIndex ["a","b","c"] (-1)  ==> Nothing
 
 safeIndex :: [a] -> Int -> Maybe a
-safeIndex xs i = todo
+safeIndex xs i 
+    | i < 0 || i >= length xs   = Nothing
+    | otherwise                 = Just (xs !! i)
 
 ------------------------------------------------------------------------------
 -- Ex 10: another variant of safe division. This time you should use
@@ -141,7 +209,9 @@ safeIndex xs i = todo
 --   eitherDiv 4 0   ==> Left "4/0"
 
 eitherDiv :: Integer -> Integer -> Either String Integer
-eitherDiv x y = todo
+eitherDiv _ 0 = Left "Attempted divide by zero"
+eitherDiv x y = Right (x `div` y)
+
 
 ------------------------------------------------------------------------------
 -- Ex 11: implement the function addEithers, which combines two values of type
@@ -158,4 +228,7 @@ eitherDiv x y = todo
 --   addEithers (Left "boom") (Left "fail") ==> Left "boom"
 
 addEithers :: Either String Int -> Either String Int -> Either String Int
-addEithers a b = todo
+addEithers (Left s)  _           = Left s
+addEithers _         (Left s)    = Left s
+addEithers (Right i) (Right j)   = Right (i+j)
+

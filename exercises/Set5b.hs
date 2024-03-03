@@ -15,7 +15,8 @@ data Tree a = Empty | Node a (Tree a) (Tree a)
 -- because the tree might be empty (i.e. just a Empty)
 
 valAtRoot :: Tree a -> Maybe a
-valAtRoot t = todo
+valAtRoot Empty         = Nothing
+valAtRoot (Node a _ _)  = Just a
 
 ------------------------------------------------------------------------------
 -- Ex 2: compute the size of a tree, that is, the number of Node
@@ -26,7 +27,9 @@ valAtRoot t = todo
 --   treeSize (Node 3 (Node 7 Empty Empty) (Node 1 Empty Empty))  ==>  3
 
 treeSize :: Tree a -> Int
-treeSize t = todo
+treeSize Empty = 0
+treeSize (Node _ l r) = 1 + treeSize l + treeSize r
+
 
 ------------------------------------------------------------------------------
 -- Ex 3: get the largest value in a tree of positive Ints. The
@@ -37,7 +40,8 @@ treeSize t = todo
 --   treeMax (Node 3 (Node 5 Empty Empty) (Node 4 Empty Empty))  ==>  5
 
 treeMax :: Tree Int -> Int
-treeMax = todo
+treeMax Empty = 0
+treeMax (Node v l r) = max v (max (treeMax l) (treeMax r))
 
 ------------------------------------------------------------------------------
 -- Ex 4: implement a function that checks if all tree values satisfy a
@@ -49,7 +53,16 @@ treeMax = todo
 --   allValues (>0) (Node 1 Empty (Node 0 Empty Empty))  ==>  False
 
 allValues :: (a -> Bool) -> Tree a -> Bool
-allValues condition tree = todo
+allValues cond Empty = True
+allValues cond (Node v l r) = cond v
+                              && allValues cond l
+                              && allValues cond r
+
+-- allValues cond Empty = True
+-- allValues cond (Node v l r) = and [ cond v,
+--                                     allValues cond l,
+--                                     allValues cond r
+--                                   ]
 
 ------------------------------------------------------------------------------
 -- Ex 5: implement map for trees.
@@ -61,7 +74,8 @@ allValues condition tree = todo
 --   ==> (Node 2 (Node 3 Empty Empty) (Node 4 Empty Empty))
 
 mapTree :: (a -> b) -> Tree a -> Tree b
-mapTree f t = todo
+mapTree _ Empty = Empty
+mapTree f (Node a l r) = Node (f a) (mapTree f l) (mapTree f r)
 
 ------------------------------------------------------------------------------
 -- Ex 6: given a value and a tree, build a new tree that is the same,
@@ -105,7 +119,9 @@ mapTree f t = todo
 --                 (Node 3 Empty Empty))
 
 cull :: Eq a => a -> Tree a -> Tree a
-cull val tree = todo
+cull _ Empty = Empty
+cull x (Node a l r) = if a == x then Empty 
+                                else Node a (cull x l) (cull x r)
 
 ------------------------------------------------------------------------------
 -- Ex 7: check if a tree is ordered. A tree is ordered if:
@@ -119,35 +135,33 @@ cull val tree = todo
 --         1
 --        / \   is ordered:
 --       0   2
---   isOrdered (Node 1 (Node 0 Empty Empty)
---                     (Node 2 Empty Empty))   ==>   True
+--   isOrdered (Node 1 (Node 0 Empty Empty) (Node 2 Empty Empty))   ==>   True
 --
 --         1
 --        / \   is not ordered:
 --       2   3
---   isOrdered (Node 1 (Node 2 Empty Empty)
---                     (Node 3 Empty Empty))   ==>   False
+--   isOrdered (Node 1 (Node 2 Empty Empty) (Node 3 Empty Empty))   ==>   False
 --
 --           2
 --         /   \
 --        1     3   is not ordered:
 --         \
 --          0
---   isOrdered (Node 2 (Node 1 Empty
---                             (Node 0 Empty Empty))
---                     (Node 3 Empty Empty))   ==>   False
+--   isOrdered (Node 2 (Node 1 Empty (Node 0 Empty Empty)) (Node 3 Empty Empty))   ==>   False
 --
 --           2
 --         /   \
 --        0     3   is ordered:
 --         \
 --          1
---   isOrdered (Node 2 (Node 0 Empty
---                             (Node 1 Empty Empty))
---                     (Node 3 Empty Empty))   ==>   True
+--   isOrdered (Node 2 (Node 0 Empty (Node 1 Empty Empty)) (Node 3 Empty Empty))   ==>   True
 
 isOrdered :: Ord a => Tree a -> Bool
-isOrdered = todo
+isOrdered Empty = True
+isOrdered (Node a l r) = allValues (<a) l
+                         && allValues (>a) r
+                         && isOrdered l
+                         && isOrdered r
 
 ------------------------------------------------------------------------------
 -- Ex 8: a path in a tree can be represented as a list of steps that
@@ -166,7 +180,10 @@ data Step = StepL | StepR
 --   walk [StepL,StepL] (Node 1 (Node 2 Empty Empty) Empty)  ==>  Nothing
 
 walk :: [Step] -> Tree a -> Maybe a
-walk = todo
+walk []        (Node x _ _)   = Just x
+walk _         Empty          = Nothing
+walk (StepL:t) (Node _ l _)   = walk t l
+walk (StepR:t) (Node _ _ r)   = walk t r
 
 ------------------------------------------------------------------------------
 -- Ex 9: given a tree, a path and a value, set the value at the end of
@@ -177,9 +194,7 @@ walk = todo
 --
 -- Examples:
 --   set [] 1 (Node 0 Empty Empty)  ==>  (Node 1 Empty Empty)
---   set [StepL,StepL] 1 (Node 0 (Node 0 (Node 0 Empty Empty)
---                                       (Node 0 Empty Empty))
---                               (Node 0 Empty Empty))
+--   set [StepL,StepL] 1 (Node 0 (Node 0 (Node 0 Empty Empty) (Node 0 Empty Empty)) (Node 0 Empty Empty))
 --                  ==>  (Node 0 (Node 0 (Node 1 Empty Empty)
 --                                       (Node 0 Empty Empty))
 --                               (Node 0 Empty Empty))
@@ -187,7 +202,10 @@ walk = todo
 --   set [StepL,StepR] 1 (Node 0 Empty Empty)  ==>  (Node 0 Empty Empty)
 
 set :: [Step] -> a -> Tree a -> Tree a
-set path val tree = todo
+set _ u Empty                  = Empty
+set [] u (Node _ r l)          = Node u r l
+set (StepL:t) u (Node v l r)   = Node v (set t u l) r
+set (StepR:t) u (Node v l r)   = Node v l           (set t u r)
 
 ------------------------------------------------------------------------------
 -- Ex 10: given a value and a tree, return a path that goes from the
@@ -198,9 +216,53 @@ set path val tree = todo
 -- Examples:
 --   search 1 (Node 2 (Node 1 Empty Empty) (Node 3 Empty Empty))  ==>  Just [StepL]
 --   search 1 (Node 2 (Node 4 Empty Empty) (Node 3 Empty Empty))  ==>  Nothing
---   search 1 (Node 2 (Node 3 (Node 4 Empty Empty)
---                            (Node 1 Empty Empty))
---                    (Node 5 Empty Empty))                     ==>  Just [StepL,StepR]
+--   search 3 (Node 2 (Node 1 Empty Empty) (Node 3 Empty Empty))  ==>  Just [StepR]
+--   search 4 (Node 2 (Node 1 Empty Empty) (Node 3 Empty Empty))  ==>  Nothing
+--   search 1 (Node 2 (Node 3 (Node 4 Empty Empty) (Node 1 Empty Empty)) (Node 5 Empty Empty))
+--   ==>  Just [StepL,StepR]
+--   search 9 (Node 2 (Node 3 (Node 4 (Node 5 (Node 6 Empty (Node 7 Empty (Node 8 (Node 9 Empty Empty) Empty))) Empty) Empty) Empty) Empty)
+--   ==> Just [StepL,StepL,StepL,StepL,StepR,StepR,StepL]
 
 search :: Eq a => a -> Tree a -> Maybe [Step]
-search = todo
+search _ Empty          = Nothing
+search x (Node v l r) 
+  | x == v              = Just []
+  | otherwise           = case (search x l, search x r) of
+                               (Nothing   , Nothing   ) -> Nothing
+                               (Nothing   , Just rpath) -> Just (StepR : rpath)
+                               (Just lpath, Nothing   ) -> Just (StepL : lpath)
+                               (Just _    , Just _    ) -> error "Requirements stipulate that there is only zero or one Node with the matching value"
+
+-- Below are from Google Bard
+
+-- I think this one is wrong, in how it handles the returned paths. I don't think there ever is a Just lpath and a Just rpath at the same time. 
+-- I did fix it by being more explicit about ALL patterns that could match
+search2 :: Eq a => a -> Tree a -> Maybe [Step]
+search2 _ Empty = Nothing
+search2 x (Node v l r)
+  | x == v = Just []
+  | otherwise = go (search x l) (search x r)
+  where
+    go Nothing      Nothing       = Nothing
+    go Nothing      (Just rpath)  = Just (StepR : rpath)
+    go (Just lpath) Nothing       = Just (StepL : lpath)
+    go (Just lpath) (Just rpath)  = error "Should never happen, and if it did, this would mean two paths, not one"
+
+-- Bard: searchAndReturnMaybePath
+-- I thought this one was much harder to understand than my version
+-- It also doesn't capture the error of two Nodes with the matching value
+-- I kinda don't like having the recursion buried in the where clause go function. Although, go is just a recursive function
+search3 :: Eq a => a -> Tree a -> Maybe [Step]
+search3 _ Empty = Nothing
+search3 x (Node v l r) = go []
+  where
+    go path
+      | x == v = Just path
+      | otherwise =
+          let lpath = go (StepL : path)
+              rpath = go (StepR : path)
+          in
+            case (lpath, rpath) of
+              (Nothing, Nothing) -> Nothing
+              (Just _, _)        -> lpath
+              _                  -> rpath
