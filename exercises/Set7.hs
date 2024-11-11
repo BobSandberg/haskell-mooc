@@ -358,6 +358,7 @@ data Arithmetic = ALiteral Integer
                 | ADivide Arithmetic Arithmetic
   deriving Show
 
+
 literal :: Integer -> Arithmetic
 literal = ALiteral
 
@@ -369,10 +370,10 @@ operation "/" a b = ADivide a b
 
 evaluate :: Arithmetic -> Integer
 evaluate (ALiteral i)     = i
-evaluate (AAdd a b)       = evaluate a + evaluate b
-evaluate (ASubtract a b)  = evaluate a - evaluate b
-evaluate (AMultiply a b)  = evaluate a * evaluate b
-evaluate (ADivide a b)    = evaluate a `div` evaluate b
+evaluate (AAdd a b)       = (+) (evaluate a) (evaluate b)
+evaluate (ASubtract a b)  = (-) (evaluate a) (evaluate b)
+evaluate (AMultiply a b)  = (*) (evaluate a) (evaluate b)
+evaluate (ADivide a b)    = div (evaluate a) (evaluate b)
 
 render :: Arithmetic -> String
 render (ALiteral i)     = show i
